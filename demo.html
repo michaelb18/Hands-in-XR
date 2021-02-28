@@ -20,30 +20,37 @@
 
 <script type="module">
     //import './js/builds/ammo.js';
+    import {GLTFLoader} from 'https://threejsfundamentals.org/threejs/resources/threejs/r125/examples/jsm/loaders/GLTFLoader.js';
+    var sceneWidth = 5;
+    var sceneHeight = 5;
     const videoElement = document.getElementsByClassName('input_video')[0];
     videoElement.style.visibility='hidden';
     const canvasElement = document.getElementsByClassName('output_canvas')[0];
     const canvasCtx = canvasElement.getContext('webgl');
     var world, mass, body, shape, timeStep=1/60,
-         camera, scene, renderer, geometry, material, mesh, hand;
+         camera, scene, renderer, geometry, material, mesh, hand, earth;
+    var init_length = 0;
     function onResults(results) {
       /*canvasCtx.save();
       canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
       canvasCtx.drawImage(
           results.image, 0, 0, canvasElement.width, canvasElement.height);*/
+      var points;
       if (results.multiHandLandmarks) {
         for (const landmarks of results.multiHandLandmarks) {
           console.log(landmarks);
           document.getElementById('pos').innerHTML = '<'+landmarks[0].x+','+landmarks[0].y+','+landmarks[0].z+'>';
-          var points = [
-            [new THREE.Vector3(landmarks[0].x, landmarks[0].y * -1, landmarks[0].z), new THREE.Vector3(landmarks[1].x, landmarks[1].y * -1, landmarks[1].z), new THREE.Vector3(landmarks[2].x, landmarks[2].y * -1, landmarks[2].z), new THREE.Vector3(landmarks[3].x, landmarks[3].y * -1, landmarks[3].z), new THREE.Vector3(landmarks[4].x, landmarks[4].y * -1, landmarks[4].z)],
-            [new THREE.Vector3(landmarks[0].x, landmarks[0].y * -1, landmarks[0].z), new THREE.Vector3(landmarks[5].x, landmarks[5].y * -1, landmarks[5].z), new THREE.Vector3(landmarks[6].x, landmarks[6].y * -1, landmarks[6].z), new THREE.Vector3(landmarks[7].x, landmarks[7].y * -1, landmarks[7].z), new THREE.Vector3(landmarks[8].x, landmarks[8].y * -1, landmarks[8].z)],
-            [new THREE.Vector3(landmarks[9].x, landmarks[9].y * -1, landmarks[9].z), new THREE.Vector3(landmarks[10].x, landmarks[10].y * -1, landmarks[10].z), new THREE.Vector3(landmarks[11].x, landmarks[11].y * -1, landmarks[11].z), new THREE.Vector3(landmarks[12].x, landmarks[12].y * -1, landmarks[12].z)],
-            [new THREE.Vector3(landmarks[13].x, landmarks[13].y * -1, landmarks[13].z), new THREE.Vector3(landmarks[14].x, landmarks[14].y * -1, landmarks[14].z), new THREE.Vector3(landmarks[15].x, landmarks[15].y * -1, landmarks[15].z), new THREE.Vector3(landmarks[16].x, landmarks[16].y * -1, landmarks[16].z)],
-            [new THREE.Vector3(landmarks[0].x, landmarks[0].y * -1, landmarks[0].z), new THREE.Vector3(landmarks[17].x, landmarks[17].y * -1, landmarks[17].z), new THREE.Vector3(landmarks[18].x, landmarks[18].y * -1, landmarks[18].z), new THREE.Vector3(landmarks[19].x, landmarks[19].y * -1, landmarks[19].z), new THREE.Vector3(landmarks[20].x, landmarks[20].y * -1, landmarks[20].z)],
-            [new THREE.Vector3(landmarks[5].x, landmarks[5].y * -1, landmarks[5].z), new THREE.Vector3(landmarks[9].x, landmarks[9].y * -1, landmarks[9].z), new THREE.Vector3(landmarks[13].x, landmarks[13].y * -1, landmarks[13].z), new THREE.Vector3(landmarks[17].x, landmarks[17].y * -1, landmarks[17].z)],
-        ]
-        const mat = new THREE.LineBasicMaterial({color: 0x00ff00})
+          points = [
+            [new THREE.Vector3(sceneWidth * landmarks[0].x, sceneHeight * (landmarks[0].y * -1 + 1), landmarks[0].z), new THREE.Vector3(sceneWidth * landmarks[1].x, sceneHeight * (landmarks[1].y * -1 + 1), landmarks[1].z), new THREE.Vector3(sceneWidth * landmarks[2].x, sceneHeight * (landmarks[2].y * -1 + 1), landmarks[2].z), new THREE.Vector3(sceneWidth * landmarks[3].x, sceneHeight * (landmarks[3].y * -1 + 1), landmarks[3].z), new THREE.Vector3(sceneWidth * landmarks[4].x, sceneHeight * (landmarks[4].y * -1 + 1), landmarks[4].z)],
+            [new THREE.Vector3(sceneWidth * landmarks[0].x, sceneHeight * (landmarks[0].y * -1 + 1), landmarks[0].z), new THREE.Vector3(sceneWidth * landmarks[5].x, sceneHeight * (landmarks[5].y * -1 + 1), landmarks[5].z), new THREE.Vector3(sceneWidth * landmarks[6].x, sceneHeight * (landmarks[6].y * -1 + 1), landmarks[6].z), new THREE.Vector3(sceneWidth * landmarks[7].x, sceneHeight * (landmarks[7].y * -1 + 1), landmarks[7].z), new THREE.Vector3(sceneWidth * landmarks[8].x, sceneHeight * (landmarks[8].y * -1 + 1), landmarks[8].z)],
+            [new THREE.Vector3(sceneWidth * landmarks[9].x, sceneHeight * (landmarks[9].y * -1 + 1), landmarks[9].z), new THREE.Vector3(sceneWidth * landmarks[10].x, sceneHeight * (landmarks[10].y * -1 + 1), landmarks[10].z), new THREE.Vector3(sceneWidth * landmarks[11].x, sceneHeight * (landmarks[11].y * -1 + 1), landmarks[11].z), new THREE.Vector3(sceneWidth * landmarks[12].x, sceneHeight * (landmarks[12].y * -1 + 1), landmarks[12].z)],
+            [new THREE.Vector3(sceneWidth * landmarks[13].x, sceneHeight * (landmarks[13].y * -1 + 1), landmarks[13].z), new THREE.Vector3(sceneWidth * landmarks[14].x, sceneHeight * (landmarks[14].y * -1 + 1), landmarks[14].z), new THREE.Vector3(sceneWidth * landmarks[15].x, sceneHeight * (landmarks[15].y * -1 + 1), landmarks[15].z), new THREE.Vector3(sceneWidth * landmarks[16].x, sceneHeight * (landmarks[16].y * -1 + 1), landmarks[16].z)],
+            [new THREE.Vector3(sceneWidth * landmarks[0].x, sceneHeight * (landmarks[0].y * -1 + 1), landmarks[0].z), new THREE.Vector3(sceneWidth * landmarks[17].x, sceneHeight * (landmarks[17].y * -1 + 1), landmarks[17].z), new THREE.Vector3(sceneWidth * landmarks[18].x, sceneHeight * (landmarks[18].y * -1 + 1), landmarks[18].z), new THREE.Vector3(sceneWidth * landmarks[19].x, sceneHeight * (landmarks[19].y * -1 + 1), landmarks[19].z), new THREE.Vector3(sceneWidth * landmarks[20].x, sceneHeight * (landmarks[20].y * -1 + 1), landmarks[20].z)],
+            [new THREE.Vector3(sceneWidth * landmarks[5].x, sceneHeight * (landmarks[5].y * -1 + 1), landmarks[5].z), new THREE.Vector3(sceneWidth * landmarks[9].x, sceneHeight * (landmarks[9].y * -1 + 1), landmarks[9].z), new THREE.Vector3(sceneWidth * landmarks[13].x, sceneHeight * (landmarks[13].y * -1 + 1), landmarks[13].z), new THREE.Vector3(sceneWidth * landmarks[17].x, sceneHeight * (landmarks[17].y * -1 + 1), landmarks[17].z)],
+          ]
+          earth.position.set(sceneWidth * landmarks[8].x, sceneHeight * (landmarks[8].y * -1 + 1), landmarks[8].z);
+        //document.getElementById('pos').innerHTML = '<'+landmarks[0].x+','+landmarks[0].y+','+landmarks[0].z+'>';
+        var mat = new THREE.LineBasicMaterial({color: 0xff0000});
         console.log(points)
         for(var i = 0; i < points.length; i = i+1)
         {
@@ -57,6 +64,8 @@
         }
           
         }
+        
+        document.getElementById('pos').innerHTML = '<'+points[0][0].x+','+points[0][0].y+','+points[0][0].z+'>';
       }
       //canvasCtx.restore();
     }
@@ -108,16 +117,27 @@
           scene = new THREE.Scene();
 
           camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 100 );
-          camera.position.z = 5;
           scene.add( camera );
-
+          camera.position.z = 5;
+          const loader = new GLTFLoader();
+          loader.load('https://console.echoar.xyz/query?key=spring-glitter-5843&file=bfd09712-4cf7-4b85-9d9d-6d249aee828f.glb', function(gltf){
+            earth = gltf.scene;
+            console.log("EARTH" + earth + " " + gltf);
+            earth.position.set(0,0,0);
+            earth.scale.set(.1, .1, .1);
+            console.log(earth.position);
+            scene.add(earth);
+          });
           geometry = new THREE.BoxGeometry( 1, 1, 1 );
-          material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+          material = new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } );
 
           mesh = new THREE.Mesh( geometry, material );
           mesh.position.set(1,1,1);
           mesh.scale.set(1,1,1);
-          scene.add( mesh );
+
+
+        
+          //scene.add( mesh );
           var artifactCanvas = document.getElementById('artifactCanvas');
           renderer = new THREE.WebGLRenderer({ canvas : canvasElement });
           renderer.setSize( window.innerWidth, window.innerHeight );
@@ -142,6 +162,9 @@
           // Copy coordinates from Cannon.js to Three.js
           mesh.position.copy(body.position);
           mesh.quaternion.copy(body.quaternion);
+
+          //place object
+          
       }
 
       function render() {
