@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://threejs.org/build/three.js"></script>
+  <script src="./js/cannon.js/build/cannon.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <canvas class="output_canvas" width="1280px" height="720px", id="artifactCanvas"></canvas>
+    <video class="input_video"></video>
+    <p id="pos">Hand position: </p>
+  </div>
+</body>
+
+<script type="module">
+    //import './js/builds/ammo.js';
+    const videoElement = document.getElementsByClassName('input_video')[0];
+    videoElement.style.visibility='hidden';
+    const canvasElement = document.getElementsByClassName('output_canvas')[0];
+    const canvasCtx = canvasElement.getContext('webgl');
+    var world, mass, body, shape, timeStep=1/60,
+         camera, scene, renderer, geometry, material, mesh, hand;
+    function onResults(results) {
+      /*canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(
+          results.image, 0, 0, canvasElement.width, canvasElement.height);*/
+      if (results.multiHandLandmarks) {
+        for (const landmarks of results.multiHandLandmarks) {
+          console.log(landmarks);
+          document.getElementById('pos').innerHTML = '<'+landmarks[0].x+','+landmarks[0].y+','+landmarks[0].z+'>';
+          var points = [
+            [new THREE.Vector3(landmarks[0].x, landmarks[0].y * -1, landmarks[0].z), new THREE.Vector3(landmarks[1].x, landmarks[1].y * -1, landmarks[1].z), new THREE.Vector3(landmarks[2].x, landmarks[2].y * -1, landmarks[2].z), new THREE.Vector3(landmarks[3].x, landmarks[3].y * -1, landmarks[3].z), new THREE.Vector3(landmarks[4].x, landmarks[4].y * -1, landmarks[4].z)],
+            [new THREE.Vector3(landmarks[0].x, landmarks[0].y * -1, landmarks[0].z), new THREE.Vector3(landmarks[5].x, landmarks[5].y * -1, landmarks[5].z), new THREE.Vector3(landmarks[6].x, landmarks[6].y * -1, landmarks[6].z), new THREE.Vector3(landmarks[7].x, landmarks[7].y * -1, landmarks[7].z), new THREE.Vector3(landmarks[8].x, landmarks[8].y * -1, landmarks[8].z)],
+            [new THREE.Vector3(landmarks[9].x, landmarks[9].y * -1, landmarks[9].z), new THREE.Vector3(landmarks[10].x, landmarks[10].y * -1, landmarks[10].z), new THREE.Vector3(landmarks[11].x, landmarks[11].y * -1, landmarks[11].z), new THREE.Vector3(landmarks[12].x, landmarks[12].y * -1, landmarks[12].z)],
+            [new THREE.Vector3(landmarks[13].x, landmarks[13].y * -1, landmarks[13].z), new THREE.Vector3(landmarks[14].x, landmarks[14].y * -1, landmarks[14].z), new THREE.Vector3(landmarks[15].x, landmarks[15].y * -1, landmarks[15].z), new THREE.Vector3(landmarks[16].x, landmarks[16].y * -1, landmarks[16].z)],
+            [new THREE.Vector3(landmarks[0].x, landmarks[0].y * -1, landmarks[0].z), new THREE.Vector3(landmarks[17].x, landmarks[17].y * -1, landmarks[17].z), new THREE.Vector3(landmarks[18].x, landmarks[18].y * -1, landmarks[18].z), new THREE.Vector3(landmarks[19].x, landmarks[19].y * -1, landmarks[19].z), new THREE.Vector3(landmarks[20].x, landmarks[20].y * -1, landmarks[20].z)],
+            [new THREE.Vector3(landmarks[5].x, landmarks[5].y * -1, landmarks[5].z), new THREE.Vector3(landmarks[9].x, landmarks[9].y * -1, landmarks[9].z), new THREE.Vector3(landmarks[13].x, landmarks[13].y * -1, landmarks[13].z), new THREE.Vector3(landmarks[17].x, landmarks[17].y * -1, landmarks[17].z)],
+        ]
+        const mat = new THREE.LineBasicMaterial({color: 0x00ff00})
+        console.log(points)
+        for(var i = 0; i < points.length; i = i+1)
+        {
+          const geo = new THREE.BufferGeometry().setFromPoints(points[i]);
+          const line = new THREE.Line(geo, mat);
+          line.onAfterRender = function() {
+            scene.remove(line);
+          }
+          line.scale.set(1,1,1);
+          scene.add(line);
+        }
+          
+        }
+      }
+      //canvasCtx.restore();
+    }
+    
+    const hands = new Hands({locateFile: (file) => {
+      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+    }});
+    hands.setOptions({
+      maxNumHands: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+    hands.onResults(onResults);
+    
+    const cam = new Camera(videoElement, {
+      onFrame: async () => {
+        await hands.send({image: videoElement});
+      },
+      width: 1280,
+      height: 720
+    });
+
+    
+    cam.start();
+
+      initThree();
+      initCannon();
+      animate();
+
+      function initCannon() {
+        world = new CANNON.World();
+        world.gravity.set(0,0,0);
+        world.broadphase = new CANNON.NaiveBroadphase();
+        world.solver.iterations = 10;
+
+        shape = new CANNON.Box(new CANNON.Vec3(1,1,1));
+        mass = 1;
+        body = new CANNON.Body({
+          mass: 1
+        });
+        body.addShape(shape);
+        body.angularVelocity.set(0,10,0);
+        body.angularDamping = 0.5;
+        world.addBody(body);
+      }
+
+      function initThree() {
+
+          scene = new THREE.Scene();
+
+          camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 100 );
+          camera.position.z = 5;
+          scene.add( camera );
+
+          geometry = new THREE.BoxGeometry( 1, 1, 1 );
+          material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+
+          mesh = new THREE.Mesh( geometry, material );
+          mesh.position.set(1,1,1);
+          mesh.scale.set(1,1,1);
+          scene.add( mesh );
+          var artifactCanvas = document.getElementById('artifactCanvas');
+          renderer = new THREE.WebGLRenderer({ canvas : canvasElement });
+          renderer.setSize( window.innerWidth, window.innerHeight );
+
+          document.body.appendChild( renderer.domElement );
+
+      }
+
+      function animate() {
+
+          requestAnimationFrame( animate );
+          updatePhysics();
+          render();
+
+      }
+
+      function updatePhysics() {
+
+          // Step the physics world
+          world.step(timeStep);
+
+          // Copy coordinates from Cannon.js to Three.js
+          mesh.position.copy(body.position);
+          mesh.quaternion.copy(body.quaternion);
+      }
+
+      function render() {
+
+          renderer.render( scene, camera );
+      }
+    </script>
+</html>
